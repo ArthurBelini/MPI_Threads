@@ -93,42 +93,42 @@ void kernel_trmm(int m, int n,
   #pragma endscop
 }
 
-int main(int argc, char** argv)
-{
-  /* Retrieve problem size. */
-  int m = M;
-  int n = N;
+int main(int argc, char** argv) {
+    int m;
+    int n;
 
-  /* Variable declaration/allocation. */
-  DATA_TYPE alpha;
-  POLYBENCH_2D_ARRAY_DECL(A,DATA_TYPE,M,M,m,m);
-  POLYBENCH_2D_ARRAY_DECL(B,DATA_TYPE,M,N,m,n);
+    args_s(argc, argv, &m, &n);
 
-  /* Initialize array(s). */
-  init_array (m, n, &alpha, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(B));
-  // print_array_aux2(A, m, n);
-  // print_array_aux2(m, m, POLYBENCH_ARRAY(A));
-  // print_array_aux3(m, n, POLYBENCH_ARRAY(B));
+    /* Variable declaration/allocation. */
+    DATA_TYPE alpha;
+    POLYBENCH_2D_ARRAY_DECL(A,DATA_TYPE,m,m,m,m);
+    POLYBENCH_2D_ARRAY_DECL(B,DATA_TYPE,m,n,m,n);
 
-  /* Start timer. */
-  polybench_start_instruments;
+    /* Initialize array(s). */
+    init_array (m, n, &alpha, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(B));
+    // print_array_aux2(A, m, n);
+    // print_array_aux2(m, m, POLYBENCH_ARRAY(A));
+    // print_array_aux3(m, n, POLYBENCH_ARRAY(B));
 
-  /* Run kernel. */
-  kernel_trmm (m, n, alpha, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(B));
-  // print_array_aux3(m, n, POLYBENCH_ARRAY(B));
-  // checksum1(POLYBENCH_ARRAY(B), m, n);
+    /* Start timer. */
+    polybench_start_instruments;
 
-  /* Stop and print timer. */
-  polybench_stop_instruments;
-  polybench_print_instruments;
+    /* Run kernel. */
+    kernel_trmm (m, n, alpha, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(B));
+    print_array_aux3(m, n, POLYBENCH_ARRAY(B));
+    // checksum1(POLYBENCH_ARRAY(B), m, n);
 
-  /* Prevent dead-code elimination. All live-out data must be printed
-     by the function call in argument. */
-  polybench_prevent_dce(print_array(m, n, POLYBENCH_ARRAY(B)));
+    /* Stop and print timer. */
+    polybench_stop_instruments;
+    polybench_print_instruments;
 
-  /* Be clean. */
-  POLYBENCH_FREE_ARRAY(A);
-  POLYBENCH_FREE_ARRAY(B);
+    /* Prevent dead-code elimination. All live-out data must be printed
+        by the function call in argument. */
+    polybench_prevent_dce(print_array(m, n, POLYBENCH_ARRAY(B)));
 
-  return 0;
+    /* Be clean. */
+    POLYBENCH_FREE_ARRAY(A);
+    POLYBENCH_FREE_ARRAY(B);
+
+    return 0;
 }

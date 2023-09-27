@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include <math.h>
 
 #include "polybench.h"
@@ -7,6 +8,49 @@
 
 #ifndef AUX_H
 #define AUX_H
+
+void args_s(int argc, char** argv, int *m, int *n) {
+    int opt;
+    char size = '\0';
+
+    while ((opt = getopt(argc, argv, "hs:")) != -1) {
+        switch (opt) {
+            case 's':
+                size = optarg[0];
+
+                switch(size) {
+                    case 's':
+                        *m = 3;
+                        *n = 4;
+                        break;
+                    case 'm':
+                        *m = 4;
+                        *n = 5;
+                        break;
+                    case 'l':
+                        *m = 5;
+                        *n = 6;
+                        break;
+                    default:
+                        fprintf(stderr, "Invalid size value. Use 's', 'm', or 'l'.\n");
+                        exit(1);
+                }
+                break;
+
+            case 'h':
+                printf("Usage: %s -s <size> -h\n", argv[0]);
+                printf("Options:\n");
+                printf("  -s <size>     Size ('s', 'm', or 'l')\n");
+                printf("  -h            Show this help message\n");
+                
+                exit(0);
+
+            default:
+                fprintf(stderr, "Usage: %s -s <size> -h\n", argv[0]);
+                exit(1);
+        }
+    }
+}
 
 void alloc_array_aux(DATA_TYPE ***C, int m, int n) {
     int i;
