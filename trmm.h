@@ -18,8 +18,8 @@
 # if !defined(M) && !defined(N)
 /* Define sample dataset sizes. */
 #  ifdef SMALL
-#   define M 300
-#   define N 400
+#   define M 3
+#   define N 4
 #  endif
 
 #  ifdef MEDIUM
