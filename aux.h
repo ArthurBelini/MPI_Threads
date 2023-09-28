@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <math.h>
+#include <ctype.h>
 
 #include "polybench.h"
 #include "trmm.h"
@@ -9,19 +9,53 @@
 #ifndef AUX_H
 #define AUX_H
 
-void args_s(int argc, char** argv, int *m, int *n) {
+int isInteger(const char *str) {
+    char *endptr; // Pointer to the first character that couldn't be converted
+    strtol(str, &endptr, 10); // Attempt to convert the string to a long integer base 10
+
+    // Check if conversion failed or if there are any non-digit characters
+    if (*endptr != '\0' || endptr == str) {
+        return 0; // Conversion failed
+    }
+
+    return 1; // Conversion successful
+}
+
+void args_parse(int argc, char** argv, char *opts, int *m, int *n, int *qtd_t) {
     int opt;
     char size = '\0';
 
-    while ((opt = getopt(argc, argv, "hs:")) != -1) {
+    if(qtd_t != NULL) {
+        *qtd_t = '\0';
+    }
+
+    while ((opt = getopt(argc, argv, opts)) != -1) {
         switch (opt) {
+            case 'h':
+                if(qtd_t == NULL) {
+                    printf("Usage: %s -s <size> -h\n", argv[0]);
+                    printf("Options:\n");
+                    printf("  -s <size>     Size ('s', 'm', or 'l')\n");
+                    printf("  -h            Show this help message\n");
+                }
+                printf("Usage: %s -s <size> -h\n", argv[0]);
+                printf("Options:\n");
+                printf("  -s <size>     Size ('s', 'm', or 'l')\n");
+                printf("  -t <qtd_t>    Qtd_t (> 0)\n");
+                printf("  -h            Show this help message\n");
+                
+                exit(0);
+
             case 's':
                 size = optarg[0];
 
+                // 4000 5000 39
+                // 4000 6000 46
+                // 5000 6000 11
                 switch(size) {
                     case 's':
-                        *m = 3;
-                        *n = 4;
+                        *m = 4000;
+                        *n = 5000;
                         break;
                     case 'm':
                         *m = 4;
@@ -37,18 +71,48 @@ void args_s(int argc, char** argv, int *m, int *n) {
                 }
                 break;
 
-            case 'h':
-                printf("Usage: %s -s <size> -h\n", argv[0]);
-                printf("Options:\n");
-                printf("  -s <size>     Size ('s', 'm', or 'l')\n");
-                printf("  -h            Show this help message\n");
+            case 't':
+                if((*qtd_t = atoi(optarg)) <= 0 || !isInteger(optarg)) {
+                    fprintf(stderr, "Invalid -t value. Must be an integer > 0.\n");
+                    exit(1);
+                }
                 
-                exit(0);
+                break;
+
+            case ':':
+                fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+
+                exit(1);
+
+            case '?':
+                if (isprint(optopt)) {
+                    fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                } else {
+                    fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+                }
+
+                exit(1);
 
             default:
-                fprintf(stderr, "Usage: %s -s <size> -h\n", argv[0]);
+                if(qtd_t == NULL) {
+                    fprintf(stderr, "Usage: %s -s <size> -h\n", argv[0]);
+                }
+                fprintf(stderr, "Usage: %s -s <size> -t <qtd_t> -h\n", argv[0]);
+
                 exit(1);
         }
+    }
+
+    if(size == '\0' || (qtd_t != NULL && *qtd_t == '\0')) {
+        if(size == '\0') {
+            fprintf(stderr, "Option -s requires an argument.\n");
+        }
+
+        if(qtd_t != NULL && *qtd_t == '\0') {
+            fprintf(stderr, "Option -t requires an argument.\n");
+        }
+
+        exit(1);
     }
 }
 

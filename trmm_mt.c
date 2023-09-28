@@ -20,8 +20,6 @@
 #include "trmm.h"
 #include "aux.h"
 
-#define QTD_T 2
-
 /* Variable declaration/allocation. */
 DATA_TYPE alpha;
 DATA_TYPE **A;
@@ -32,6 +30,7 @@ int n;
 int rank;
 int size;
 int sendcount;
+int qtd_t;
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
@@ -48,7 +47,7 @@ void *kernel_trmm(void *t_id) {
     // A is MxM
     // B is MxN
     for(i = 0; i < m; i++) {  // Linha
-        for(j = rank + *(int*) t_id * size; j < n; j += size * QTD_T) {  // Coluna
+        for(j = rank + *(int*) t_id * size; j < n; j += size * qtd_t) {  // Coluna
             // printf("%d %d %d\n", *(int*) t_id, i, j);
             offset = j/size*m;
 
@@ -62,6 +61,11 @@ void *kernel_trmm(void *t_id) {
 }
 
 int main(int argc, char** argv) {
+    args_parse(argc, argv, "hs:t:", &m, &n, &qtd_t);
+    
+    pthread_t *ts = (pthread_t*) malloc(qtd_t*sizeof(pthread_t));
+    int *ts_ids = (int*) malloc(qtd_t*sizeof(int));
+
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -71,12 +75,8 @@ int main(int argc, char** argv) {
     int b_size;
     int *sendcounts;
     int *displs;
-    int ts_ids[QTD_T];
     DATA_TYPE *send_array;
-    pthread_t ts[QTD_T];
 
-    m = M;
-    n = N;
     a_size = m*m;
     b_size = m*n;
     send_array = (DATA_TYPE*) calloc(b_size, sizeof(DATA_TYPE));
@@ -109,13 +109,13 @@ int main(int argc, char** argv) {
 
     // print_array_aux(&recv_array, 1, sendcounts[rank]);
 
-    for(i = 0; i < QTD_T; i++) {
+    for(i = 0; i < qtd_t; i++) {
         ts_ids[i] = i;
 
         pthread_create(&ts[i], NULL, &kernel_trmm, &ts_ids[i]);
     }
 
-    for(i = 0; i < QTD_T; i++) {
+    for(i = 0; i < qtd_t; i++) {
         pthread_join(ts[i], NULL);
     }
 
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
     if(rank == 0) {
         unflatten_array(send_array, B, m, n, size, sendcounts, displs);
         // print_array_aux(B, m, n);
-        // checksum2(B, m, n);
+        checksum2(B, m, n);
     }
 
     free_array_aux(A, m);

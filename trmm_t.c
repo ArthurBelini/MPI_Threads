@@ -19,14 +19,13 @@
 #include "trmm.h"
 #include "aux.h"
 
-#define QTD_T 12
-
 /* Variable declaration/allocation. */
 DATA_TYPE alpha;
 DATA_TYPE **A;
 DATA_TYPE **B;
 int m;
 int n;
+int qtd_t;
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
@@ -42,7 +41,7 @@ void *kernel_trmm(void *t_id) {
     // A is MxM
     // B is MxN
     for(int i = 0; i < m; i++) {  // Linha
-        for(int j = *(int *)t_id; j < n; j+=QTD_T) {  // Coluna
+        for(int j = *(int *)t_id; j < n; j+=qtd_t) {  // Coluna
             for(int k = i+1; k < m; k++) {  // Elementos
                 B[i][j] += A[k][i] * B[k][j];
             }
@@ -53,13 +52,11 @@ void *kernel_trmm(void *t_id) {
 }
 
 int main(int argc, char** argv) {
-    pthread_t ts[QTD_T];
-    int ts_ids[QTD_T];
-    int i;
+    args_parse(argc, argv, "hs:t:", &m, &n, &qtd_t);
 
-    /* Retrieve problem size. */
-    m = M;
-    n = N;
+    pthread_t *ts = (pthread_t*) malloc(qtd_t*sizeof(pthread_t));
+    int *ts_ids = (int*) malloc(qtd_t*sizeof(int));
+    int i;
 
     alloc_array_aux(&A, m, m);
     alloc_array_aux(&B, m, n);
@@ -68,18 +65,18 @@ int main(int argc, char** argv) {
     // print_array_aux(B, m, n);
 
     /* Run kernel. */
-    for(i = 0; i < QTD_T; i++) {
+    for(i = 0; i < qtd_t; i++) {
         ts_ids[i] = i;
 
         pthread_create(&ts[i], NULL, &kernel_trmm, &ts_ids[i]);
     }
 
-    for(i = 0; i < QTD_T; i++) {
+    for(i = 0; i < qtd_t; i++) {
         pthread_join(ts[i], NULL);
     }
 
     // print_array_aux(B, m, n);
-    // checksum2(B, m, n);
+    checksum2(B, m, n);
 
     /* Be clean. */
     free_array_aux(A, m);

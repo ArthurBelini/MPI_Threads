@@ -1,4 +1,4 @@
-/**
+/**MN
  * This version is stamped on May 10, 2016
  *
  * Contact:
@@ -61,20 +61,22 @@ void kernel_trmm(DATA_TYPE *recv_array, int rank, int size, int sendcount) {
 }
 
 int main(int argc, char** argv) {
-    int i, a_size, b_size, rank, size, x;
-    DATA_TYPE *send_array;
-    int *sendcounts;
-    int *displs;
-    DATA_TYPE *recv_array;
-    // DATA_TYPE *send_a;
+    args_parse(argc, argv, "hs:", &m, &n, NULL);
+
+    int size, rank;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    /* Retrieve problem size. */
-    m = M;
-    n = N;
+    int i;
+    int a_size; 
+    int b_size;
+    DATA_TYPE *send_array;
+    DATA_TYPE *recv_array;
+    int *sendcounts;
+    int *displs;
+
     a_size = m*m;
     b_size = m*n;
     send_array = (DATA_TYPE*) calloc(b_size, sizeof(DATA_TYPE));
@@ -130,7 +132,7 @@ int main(int argc, char** argv) {
     if(rank == 0) {
         unflatten_array(send_array, B, m, n, size, sendcounts, displs);
         // print_array_aux(B, m, n);
-        // checksum2(B, m, n);
+        checksum2(B, m, n);
     }
 
     free_array_aux(A, m);

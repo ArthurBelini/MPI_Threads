@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
     int m;
     int n;
 
-    args_s(argc, argv, &m, &n);
+    args_parse(argc, argv, "hs:", &m, &n, NULL);
 
     /* Variable declaration/allocation. */
     DATA_TYPE alpha;
@@ -115,8 +115,8 @@ int main(int argc, char** argv) {
 
     /* Run kernel. */
     kernel_trmm (m, n, alpha, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(B));
-    print_array_aux3(m, n, POLYBENCH_ARRAY(B));
-    // checksum1(POLYBENCH_ARRAY(B), m, n);
+    // print_array_aux3(m, n, POLYBENCH_ARRAY(B));
+    checksum1(POLYBENCH_ARRAY(B), m, n);
 
     /* Stop and print timer. */
     polybench_stop_instruments;
