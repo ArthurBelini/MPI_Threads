@@ -15,20 +15,18 @@
 #include <math.h>
 #include <mpi.h>
 
-/* Include benchmark-specific header. */
-#include "trmm.h"
 #include "aux.h"
 
 /* Variable declaration/allocation. */
-DATA_TYPE alpha;
-DATA_TYPE **A;
-DATA_TYPE **B;
+double alpha;
+double **A;
+double **B;
 int m;
 int n;
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-void kernel_trmm(DATA_TYPE *recv_array, int rank, int size, int sendcount) {
+void kernel_trmm(double *recv_array, int rank, int size, int sendcount) {
     int i, j, k, offset;
 
     //BLAS parameters
@@ -60,26 +58,31 @@ void kernel_trmm(DATA_TYPE *recv_array, int rank, int size, int sendcount) {
     // printf("\n\n\n");
 }
 
-int main(int argc, char** argv) {
-    args_parse(argc, argv, "hs:", &m, &n, NULL);
-
+int main(int argc, char** argv) {  // Arummar bug quando quantidade de processos > m!!!
     int size, rank;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    if(rank == 0) {
+        args_parse(argc, argv, "hs:", &m, &n, NULL);
+    }
+
+    MPI_Bcast(&m, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
     int i;
     int a_size; 
     int b_size;
-    DATA_TYPE *send_array;
-    DATA_TYPE *recv_array;
+    double *send_array;
+    double *recv_array;
     int *sendcounts;
     int *displs;
 
     a_size = m*m;
     b_size = m*n;
-    send_array = (DATA_TYPE*) calloc(b_size, sizeof(DATA_TYPE));
+    send_array = (double*) calloc(b_size, sizeof(double));
     sendcounts = (int*) calloc(n, sizeof(int));
     displs = (int*) calloc(n, sizeof(int));
     for(i = 0; i < n; i++) {
@@ -95,14 +98,14 @@ int main(int argc, char** argv) {
     // print_array_aux4(&sendcounts, 1, size);
     // print_array_aux4(&displs, 1, size);
 
-    recv_array = (DATA_TYPE*) calloc(sendcounts[rank], sizeof(DATA_TYPE));
+    recv_array = (double*) calloc(sendcounts[rank], sizeof(double));
 
-    alloc_array_aux(&A, m, m);
+    alloc_array(&A, m, m);
     // printf("%ld %ld\n", sizeof(A), sizeof(A[0][0]));
     if(rank == 0) {
-        alloc_array_aux(&B, m, n);
+        alloc_array(&B, m, n);
         // printf("%d\n", (int) sizeof(B));
-        init_array_aux(&alpha, A, B, m, n);
+        init_arrays(&alpha, A, B, m, n);
         flatten_array(send_array, B, m, n, size, sendcounts, displs);
         // print_array_aux(A, m, m);
         // print_array_aux(B, m, n);
@@ -132,12 +135,12 @@ int main(int argc, char** argv) {
     if(rank == 0) {
         unflatten_array(send_array, B, m, n, size, sendcounts, displs);
         // print_array_aux(B, m, n);
-        checksum2(B, m, n);
+        // checksum(B, m, n);
     }
 
-    free_array_aux(A, m);
+    free_array(A, m);
     if(rank == 0) {
-        free_array_aux(B, m);
+        free_array(B, m);
     }
     free(send_array);
     free(recv_array);

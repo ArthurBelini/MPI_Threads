@@ -3,9 +3,6 @@
 #include <getopt.h>
 #include <ctype.h>
 
-#include "polybench.h"
-#include "trmm.h"
-
 #ifndef AUX_H
 #define AUX_H
 
@@ -21,7 +18,7 @@ int isInteger(const char *str) {
     return 1; // Conversion successful
 }
 
-void args_parse(int argc, char** argv, char *opts, int *m, int *n, int *qtd_t) {
+void args_parse(int argc, char** argv, char *opts, int *m, int *n, int *qtd_t) {  // Arrumar bugs!!! 
     int opt;
     char size = '\0';
 
@@ -54,16 +51,16 @@ void args_parse(int argc, char** argv, char *opts, int *m, int *n, int *qtd_t) {
                 // 5000 6000 11
                 switch(size) {
                     case 's':
-                        *m = 4000;
-                        *n = 5000;
+                        *m = 50;
+                        *n = 50;
                         break;
                     case 'm':
-                        *m = 4;
-                        *n = 5;
+                        *m = 50;
+                        *n = 50;
                         break;
                     case 'l':
-                        *m = 5;
-                        *n = 6;
+                        *m = 50;
+                        *n = 50;
                         break;
                     default:
                         fprintf(stderr, "Invalid size value. Use 's', 'm', or 'l'.\n");
@@ -116,10 +113,10 @@ void args_parse(int argc, char** argv, char *opts, int *m, int *n, int *qtd_t) {
     }
 }
 
-void alloc_array_aux(DATA_TYPE ***C, int m, int n) {
+void alloc_array(double ***C, int m, int n) {
     int i;
 
-    *C = (DATA_TYPE**) calloc(m, sizeof(DATA_TYPE*));
+    *C = (double**) calloc(m, sizeof(double*));
 
     // if (*C == NULL) {
     //     // Handle memory allocation error here (e.g., print an error message and exit)
@@ -128,7 +125,7 @@ void alloc_array_aux(DATA_TYPE ***C, int m, int n) {
     // }
 
     for(i = 0; i < m; i++) {
-        (*C)[i] = (DATA_TYPE*) calloc(n, sizeof(DATA_TYPE));
+        (*C)[i] = (double*) calloc(n, sizeof(double));
 
         // if ((*C)[i] == NULL) {
         //     // Handle memory allocation error for a specific row
@@ -138,33 +135,33 @@ void alloc_array_aux(DATA_TYPE ***C, int m, int n) {
     }
 }
 
-void init_array_aux(DATA_TYPE *alpha, DATA_TYPE **A, DATA_TYPE **B, int m, int n) {
+void init_arrays(double *alpha, double **A, double **B, int m, int n) {
     int i, j;
 
     *alpha = 1.5;
 
     for (i = 0; i < m; i++) {
         for (j = 0; j < i; j++) {
-            A[i][j] = (DATA_TYPE)((i+j) % m)/m;
+            A[i][j] = (double)((i+j) % m)/m;
         }
         A[i][i] = 1.0;
         for (j = 0; j < n; j++) {
-            B[i][j] = (DATA_TYPE)((n+(i-j)) % n)/n;
+            B[i][j] = (double)((n+(i-j)) % n)/n;
         }
     }
 }
 
-void free_array_aux(DATA_TYPE **C, int m) {
+void free_array(double **A, int m) {
     int i;
 
     for(i = 0; i < m; i++) {
-        free(C[i]);
+        free(A[i]);
     }
 
-    free(C);
+    free(A);
 }
 
-void flatten_array(DATA_TYPE *send_array, DATA_TYPE **B, int m, int n, int size, int *sendcounts, int *displs) {
+void flatten_array(double *send_array, double **B, int m, int n, int size, int *sendcounts, int *displs) {
     int offset;
 
     for(int r = 0; r < size; r++) {
@@ -178,7 +175,7 @@ void flatten_array(DATA_TYPE *send_array, DATA_TYPE **B, int m, int n, int size,
     }
 }
 
-void unflatten_array(DATA_TYPE *send_array, DATA_TYPE **B, int m, int n, int size, int *sendcounts, int *displs) {
+void unflatten_array(double *send_array, double **B, int m, int n, int size, int *sendcounts, int *displs) {
     int offset;
 
     for(int r = 0; r < size; r++) {
@@ -192,7 +189,7 @@ void unflatten_array(DATA_TYPE *send_array, DATA_TYPE **B, int m, int n, int siz
     }
 }
 
-void print_array_aux(DATA_TYPE **A, int m, int n) {
+void print_array(double **A, int m, int n) {
     int i, j;
 
     for (i = 0; i < m; i++) {
@@ -205,35 +202,7 @@ void print_array_aux(DATA_TYPE **A, int m, int n) {
     printf("\n");
 }
 
-void print_array_aux2(int m, int n,
-		 DATA_TYPE POLYBENCH_2D(A,M,M,m,m)) {
-    int i, j;
-
-    for (i = 0; i < m; i++) {
-        for (j = 0; j < m; j++) {
-            printf("%.2f ", A[i][j]);
-        }
-        printf("\n");
-    }
-
-    printf("\n");
-}
-
-void print_array_aux3(int m, int n,
-		 DATA_TYPE POLYBENCH_2D(B,M,N,m,n)) {
-    int i, j;
-
-    for (i = 0; i < m; i++) {
-        for (j = 0; j < n; j++) {
-            printf("%.2f ", B[i][j]);
-        }
-        printf("\n");
-    }
-
-    printf("\n");
-}
-
-void print_array_aux4(int **A, int m, int n) {
+void print_array_int(int **A, int m, int n) {
     int i, j;
 
     for (i = 0; i < m; i++) {
@@ -246,19 +215,7 @@ void print_array_aux4(int **A, int m, int n) {
     printf("\n");
 }
 
-void checksum1(DATA_TYPE POLYBENCH_2D(B,M,N,m,n), int m, int n) {
-    double sum = 0;
-
-    for(int i = 0; i < m; i++) {
-        for(int j = 0; j < n; j++) {
-            sum += B[i][j];
-        }
-    }
-
-    printf("Checksum: %.2f\n", sum);
-}
-
-void checksum2(DATA_TYPE **B, int m, int n) {
+void checksum(double **B, int m, int n) {
     double sum = 0;
 
     for(int i = 0; i < m; i++) {

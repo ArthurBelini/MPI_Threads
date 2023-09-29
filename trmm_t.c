@@ -15,14 +15,12 @@
 #include <math.h>
 #include <pthread.h>
 
-/* Include benchmark-specific header. */
-#include "trmm.h"
 #include "aux.h"
 
 /* Variable declaration/allocation. */
-DATA_TYPE alpha;
-DATA_TYPE **A;
-DATA_TYPE **B;
+double alpha;
+double **A;
+double **B;
 int m;
 int n;
 int qtd_t;
@@ -58,9 +56,9 @@ int main(int argc, char** argv) {
     int *ts_ids = (int*) malloc(qtd_t*sizeof(int));
     int i;
 
-    alloc_array_aux(&A, m, m);
-    alloc_array_aux(&B, m, n);
-    init_array_aux(&alpha, A, B, m, n);
+    alloc_array(&A, m, m);
+    alloc_array(&B, m, n);
+    init_arrays(&alpha, A, B, m, n);
     // print_array_aux(A, m, m);
     // print_array_aux(B, m, n);
 
@@ -76,11 +74,11 @@ int main(int argc, char** argv) {
     }
 
     // print_array_aux(B, m, n);
-    checksum2(B, m, n);
+    // checksum(B, m, n);
 
     /* Be clean. */
-    free_array_aux(A, m);
-    free_array_aux(B, m);
+    free_array(A, m);
+    free_array(B, m);
 
     return 0;
 }

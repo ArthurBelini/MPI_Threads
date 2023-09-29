@@ -16,15 +16,13 @@
 #include <pthread.h>
 #include <mpi.h>
 
-/* Include benchmark-specific header. */
-#include "trmm.h"
 #include "aux.h"
 
 /* Variable declaration/allocation. */
-DATA_TYPE alpha;
-DATA_TYPE **A;
-DATA_TYPE **B;
-DATA_TYPE *recv_array;
+double alpha;
+double **A;
+double **B;
+double *recv_array;
 int m;
 int n;
 int rank;
@@ -60,26 +58,32 @@ void *kernel_trmm(void *t_id) {
     }
 }
 
-int main(int argc, char** argv) {
-    args_parse(argc, argv, "hs:t:", &m, &n, &qtd_t);
-    
-    pthread_t *ts = (pthread_t*) malloc(qtd_t*sizeof(pthread_t));
-    int *ts_ids = (int*) malloc(qtd_t*sizeof(int));
-
+int main(int argc, char** argv) {  // Arummar bug quando quantidade de processos > m!!!
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    if(rank == 0) {
+        args_parse(argc, argv, "hs:t:", &m, &n, &qtd_t);
+    }
+
+    MPI_Bcast(&m, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&qtd_t, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     int i;
     int a_size;
     int b_size;
     int *sendcounts;
     int *displs;
-    DATA_TYPE *send_array;
+    double *send_array;
+
+    pthread_t *ts = (pthread_t*) malloc(qtd_t*sizeof(pthread_t));
+    int *ts_ids = (int*) malloc(qtd_t*sizeof(int));
 
     a_size = m*m;
     b_size = m*n;
-    send_array = (DATA_TYPE*) calloc(b_size, sizeof(DATA_TYPE));
+    send_array = (double*) calloc(b_size, sizeof(double));
     sendcounts = (int*) calloc(n, sizeof(int));
     displs = (int*) calloc(n, sizeof(int));
     for(i = 0; i < n; i++) {
@@ -91,12 +95,12 @@ int main(int argc, char** argv) {
         displs[i] = (i > 0) ? displs[i-1] + sendcounts[i-1] : 0;
     }
 
-    recv_array = (DATA_TYPE*) calloc(sendcounts[rank], sizeof(DATA_TYPE));
+    recv_array = (double*) calloc(sendcounts[rank], sizeof(double));
 
-    alloc_array_aux(&A, m, m);
+    alloc_array(&A, m, m);
     if(rank == 0) {
-        alloc_array_aux(&B, m, n);
-        init_array_aux(&alpha, A, B, m, n);
+        alloc_array(&B, m, n);
+        init_arrays(&alpha, A, B, m, n);
         flatten_array(send_array, B, m, n, size, sendcounts, displs);
     }
 
@@ -128,12 +132,12 @@ int main(int argc, char** argv) {
     if(rank == 0) {
         unflatten_array(send_array, B, m, n, size, sendcounts, displs);
         // print_array_aux(B, m, n);
-        checksum2(B, m, n);
+        // checksum(B, m, n);
     }
 
-    free_array_aux(A, m);
+    free_array(A, m);
     if(rank == 0) {
-        free_array_aux(B, m);
+        free_array(B, m);
     }
     free(send_array);
     free(recv_array);
