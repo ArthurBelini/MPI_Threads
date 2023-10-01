@@ -28,11 +28,16 @@ void *kernel_trmm(void *t_id) {
 }
 
 int main(int argc, char** argv) {
-    args_parse(argc, argv, "hs:t:", &m, &n, &qtd_t);
+    int i;
+
+    int ret = args_parse(argc, argv, "hs:t:", &m, &n, &qtd_t);
+
+    if(ret <= 1) {
+        exit(ret);
+    }
 
     pthread_t *ts = (pthread_t*) malloc(qtd_t*sizeof(pthread_t));
     int *ts_ids = (int*) malloc(qtd_t*sizeof(int));
-    int i;
 
     alloc_array(&A, m, m);
     alloc_array(&B, m, n);
@@ -49,7 +54,7 @@ int main(int argc, char** argv) {
     }
 
     // print_array_aux(B, m, n);
-    // checksum(B, m, n);
+    checksum(B, m, n);
 
     free_array(A, m);
     free_array(B, m);
