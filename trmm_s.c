@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 
     kernel_trmm(m, n, alpha, A, B);
     // print_array(B, m, n);
-    checksum(B, m, n);
+    // checksum(B, m, n);
 
     free_array(A, m);
     free_array(B, m);

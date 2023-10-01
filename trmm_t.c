@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     }
 
     // print_array_aux(B, m, n);
-    checksum(B, m, n);
+    // checksum(B, m, n);
 
     free_array(A, m);
     free_array(B, m);

@@ -46,21 +46,18 @@ int args_parse(int argc, char** argv, char *opts, int *m, int *n, int *qtd_t) { 
             case 's':
                 size = optarg[0];
 
-                // 4000 5000 39
-                // 4000 6000 46
-                // 5000 6000 11
                 switch(size) {
                     case 's':
-                        *m = 10;
-                        *n = 10;
+                        *m = 4000;
+                        *n = 5000;
                         break;
                     case 'm':
-                        *m = 50;
-                        *n = 50;
+                        *m = 4000;
+                        *n = 6000;
                         break;
                     case 'l':
-                        *m = 50;
-                        *n = 50;
+                        *m = 5000;
+                        *n = 6000;
                         break;
                     default:
                         fprintf(stderr, "Invalid size value. Use 's', 'm', or 'l'.\n");

@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
     if(rank == 0) {
         unflatten_array(send_array, B, m, n, size, sendcounts, displs);
         // print_array_aux(B, m, n);
-        checksum(B, m, n);
+        // checksum(B, m, n);
     }
 
     free_array(A, m);
