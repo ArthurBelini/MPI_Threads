@@ -51,8 +51,8 @@ void args_parse(int argc, char** argv, char *opts, int *m, int *n, int *qtd_t) {
                 // 5000 6000 11
                 switch(size) {
                     case 's':
-                        *m = 50;
-                        *n = 50;
+                        *m = 10;
+                        *n = 10;
                         break;
                     case 'm':
                         *m = 50;
@@ -118,20 +118,16 @@ void alloc_array(double ***C, int m, int n) {
 
     *C = (double**) calloc(m, sizeof(double*));
 
-    // if (*C == NULL) {
-    //     // Handle memory allocation error here (e.g., print an error message and exit)
-    //     perror("Memory allocation failed for row pointers");
-    //     exit(EXIT_FAILURE);
-    // }
+    if (*C == NULL) {
+        exit(1);
+    }
 
     for(i = 0; i < m; i++) {
         (*C)[i] = (double*) calloc(n, sizeof(double));
 
-        // if ((*C)[i] == NULL) {
-        //     // Handle memory allocation error for a specific row
-        //     perror("Memory allocation failed for row");
-        //     exit(EXIT_FAILURE);
-        // }
+        if ((*C)[i] == NULL) {
+            exit(1);
+        }
     }
 }
 

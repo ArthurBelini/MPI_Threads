@@ -1,14 +1,3 @@
-/**
- * This version is stamped on May 10, 2016
- *
- * Contact:
- *   Louis-Noel Pouchet <pouchet.ohio-state.edu>
- *   Tomofumi Yuki <tomofumi.yuki.fr>
- *
- * Web address: http://polybench.sourceforge.net
- */
-/* trmm.c: this file is part of PolyBench/C */
-
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -18,7 +7,6 @@
 
 #include "aux.h"
 
-/* Variable declaration/allocation. */
 double alpha;
 double **A;
 double **B;
@@ -30,23 +18,11 @@ int size;
 int sendcount;
 int qtd_t;
 
-/* Main computational kernel. The whole function will be timed,
-   including the call and return. */
 void *kernel_trmm(void *t_id) {
-    // printf("aoba");
     int i, j, k, offset;
 
-    //BLAS parameters
-    //SIDE   = 'L'
-    //UPLO   = 'L'
-    //TRANSA = 'T'
-    //DIAG   = 'U'
-    // => Form  B := alpha*A**T*B.
-    // A is MxM
-    // B is MxN
     for(i = 0; i < m; i++) {  // Linha
         for(j = rank + *(int*) t_id * size; j < n; j += size * qtd_t) {  // Coluna
-            // printf("%d %d %d\n", *(int*) t_id, i, j);
             offset = j/size*m;
 
             for(k = i+1; k < m; k++) {  // Elementos
@@ -58,7 +34,7 @@ void *kernel_trmm(void *t_id) {
     }
 }
 
-int main(int argc, char** argv) {  // Arummar bug quando quantidade de processos > m!!!
+int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -84,8 +60,8 @@ int main(int argc, char** argv) {  // Arummar bug quando quantidade de processos
     a_size = m*m;
     b_size = m*n;
     send_array = (double*) calloc(b_size, sizeof(double));
-    sendcounts = (int*) calloc(n, sizeof(int));
-    displs = (int*) calloc(n, sizeof(int));
+    sendcounts = (int*) calloc(size, sizeof(int));
+    displs = (int*) calloc(size, sizeof(int));
     for(i = 0; i < n; i++) {
         sendcounts[i % size]++;
     }
@@ -111,8 +87,6 @@ int main(int argc, char** argv) {  // Arummar bug quando quantidade de processos
 
     MPI_Scatterv(send_array, sendcounts, displs, MPI_DOUBLE, recv_array, sendcounts[rank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // print_array_aux(&recv_array, 1, sendcounts[rank]);
-
     for(i = 0; i < qtd_t; i++) {
         ts_ids[i] = i;
 
@@ -123,11 +97,7 @@ int main(int argc, char** argv) {  // Arummar bug quando quantidade de processos
         pthread_join(ts[i], NULL);
     }
 
-    // print_array_aux(&recv_array, 1, sendcounts[rank]);
-
     MPI_Gatherv(recv_array, sendcounts[rank], MPI_DOUBLE, send_array, sendcounts, displs, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    // print_array_aux(&recv_array, 1, div_size);
 
     if(rank == 0) {
         unflatten_array(send_array, B, m, n, size, sendcounts, displs);

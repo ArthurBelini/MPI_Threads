@@ -1,14 +1,3 @@
-/**
- * This version is stamped on May 10, 2016
- *
- * Contact:
- *   Louis-Noel Pouchet <pouchet.ohio-state.edu>
- *   Tomofumi Yuki <tomofumi.yuki.fr>
- *
- * Web address: http://polybench.sourceforge.net
- */
-/* trmm.c: this file is part of PolyBench/C */
-
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -17,7 +6,6 @@
 
 #include "aux.h"
 
-/* Variable declaration/allocation. */
 double alpha;
 double **A;
 double **B;
@@ -25,19 +13,9 @@ int m;
 int n;
 int qtd_t;
 
-/* Main computational kernel. The whole function will be timed,
-   including the call and return. */
 void *kernel_trmm(void *t_id) {
     int i, j, k;
 
-    //BLAS parameters
-    //SIDE   = 'L'
-    //UPLO   = 'L'
-    //TRANSA = 'T'
-    //DIAG   = 'U'
-    // => Form  B := alpha*A**T*B.
-    // A is MxM
-    // B is MxN
     for(int i = 0; i < m; i++) {  // Linha
         for(int j = *(int *)t_id; j < n; j+=qtd_t) {  // Coluna
             for(int k = i+1; k < m; k++) {  // Elementos
@@ -59,10 +37,7 @@ int main(int argc, char** argv) {
     alloc_array(&A, m, m);
     alloc_array(&B, m, n);
     init_arrays(&alpha, A, B, m, n);
-    // print_array_aux(A, m, m);
-    // print_array_aux(B, m, n);
 
-    /* Run kernel. */
     for(i = 0; i < qtd_t; i++) {
         ts_ids[i] = i;
 
@@ -76,7 +51,6 @@ int main(int argc, char** argv) {
     // print_array_aux(B, m, n);
     // checksum(B, m, n);
 
-    /* Be clean. */
     free_array(A, m);
     free_array(B, m);
 

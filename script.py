@@ -12,8 +12,9 @@ def trmm_m(config):
 def trmm_mt(config):
     return f'mpirun -n {config["streams"]//2} ./trmm_mt -s {config["size"]} -t {2}'
 
-methods = [trmm_t, trmm_m, trmm_mt]
-sizes = ['s', 'm', 'l']
+# methods = [trmm_t, trmm_m, trmm_mt]
+methods = [trmm_t]
+sizes = ['s']
 streams = [int(2**n) for n in range(1, 6)] 
 metrics = ['duration_time', 'cache-misses', 'context-switches'] 
 
@@ -30,7 +31,7 @@ except Exception as e:
     exit()
 
 plot_types = ['speedup', 'efficiency']
-its = 1
+its = 2
 s_means = {size: 0 for size in sizes}
 plots = {plot: {method: {size: [] for size in sizes} for method in methods} for plot in plot_types}
 speedups = plots['speedup']
@@ -45,7 +46,7 @@ for config in configs:
     file.write(f'{command_run}:\n')
 
     for i in range(its):
-        # print(command_perf)
+        print(command_perf)
         lines = subprocess.run(command_perf, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True).stderr
         lines = lines.strip('\n')
         lines = lines.split('\n')
