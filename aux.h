@@ -49,7 +49,7 @@ int args_parse(int argc, char** argv, char *opts, int *m, int *n, int *qtd_t) { 
                 switch(size) {
                     case 's':
                         *m = 4000;
-                        *n = 5000;
+                        *n = 4500;
                         break;
                     case 'm':
                         *m = 4000;
