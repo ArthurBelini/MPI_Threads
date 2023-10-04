@@ -35,8 +35,7 @@ int main(int argc, char** argv) {
 
     alloc_array(&A, m, m);
     alloc_array(&B, m, n);
-    init_arrays(&alpha, A, B, m, n);
-
+    
     init_arrays(&alpha, A, B, m, n);
 
     kernel_trmm(m, n, alpha, A, B);
