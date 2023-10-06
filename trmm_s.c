@@ -1,47 +1,44 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <math.h>
-
 #include "aux.h"
 
-static
-void kernel_trmm(int m, int n, double alpha, double **A, double **B) {
+void kernel_trmm(double **A, double **B, double alpha, int m, int n) {
     int i, j, k;
 
-    for (i = 0; i < m; i++) {
-        for (j = 0; j < n; j++) {
-            for (k = i+1; k < m; k++) {
+    for(i = 0; i < m; i++) {  // Linhas de B
+        for(j = 0; j < n; j++) {  // Colunas de B
+            for(k = i + 1; k < m; k++) {  // Elementos da coluna j
                 B[i][j] += A[k][i] * B[k][j];
             }
 
-            B[i][j] = alpha * B[i][j];
+            B[i][j] *= alpha;
         }
     }
 }
 
 int main(int argc, char** argv) {
-    double **A;
-    double **B;
+    // ### Declarações ###
+    double **A, **B;
     double alpha;
-    int m;
-    int n;
+    int m, n;
 
-    int ret = args_parse(argc, argv, "hs:", &m, &n, NULL);
+    // ### Passagem de argumentos ###
+    int args_flag = args_parse(argc, argv, "hpcs:", &m, &n, NULL);
 
-    if(ret <= 1) {
-        exit(ret);
+    if(args_flag <= 1) {  // Saída normal ou com erro
+        exit(args_flag);
     }
 
+    // ### Inicialização das matrizes ###
     alloc_array(&A, m, m);
     alloc_array(&B, m, n);
     
     init_arrays(&alpha, A, B, m, n);
 
-    kernel_trmm(m, n, alpha, A, B);
-    // print_array(B, m, n);
-    // checksum(B, m, n);
+    // ### Processamento principal ###
+    kernel_trmm(A, B, alpha, m, n);
 
+    run_tests(B, m, n, args_flag);  // Testes de resultado
+
+    // ### Finalização ###
     free_array(A, m);
     free_array(B, m);
 

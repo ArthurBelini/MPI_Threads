@@ -1,0 +1,1 @@
+Testar resultados dos códigos: ./trmm_s -s t -p -c ; ./trmm_t -s t -p -c -t 2 ; mpirun -n 2 ./trmm_m -s t -p -c ; mpirun -n 2 ./trmm_mt -s t -t 2 -p -c

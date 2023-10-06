@@ -1,14 +1,10 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <math.h>
 #include <pthread.h>
 
 #include "aux.h"
 
-double alpha;
 double **A;
 double **B;
+double alpha;
 int m;
 int n;
 int qtd_t;
@@ -16,9 +12,9 @@ int qtd_t;
 void *kernel_trmm(void *t_id) {
     int i, j, k;
 
-    for(int i = 0; i < m; i++) {  // Linha
-        for(int j = *(int *)t_id; j < n; j+=qtd_t) {  // Coluna
-            for(int k = i+1; k < m; k++) {  // Elementos
+    for(int i = 0; i < m; i++) {  // Linhas de B
+        for(int j = *((int *) t_id); j < n; j += qtd_t) {  // Colunas de B
+            for(int k = i + 1; k < m; k++) {  // Elementos da coluna j
                 B[i][j] += A[k][i] * B[k][j];
             }
 
@@ -28,34 +24,39 @@ void *kernel_trmm(void *t_id) {
 }
 
 int main(int argc, char** argv) {
-    int i;
+    // ### Passagem de argumentos ###
+    int args_flag = args_parse(argc, argv, "hpcs:t:", &m, &n, &qtd_t);
 
-    int ret = args_parse(argc, argv, "hs:t:", &m, &n, &qtd_t);
-
-    if(ret <= 1) {
-        exit(ret);
+    if(args_flag <= 1) {  // Saída normal ou com erro
+        exit(args_flag);
     }
 
-    pthread_t *ts = (pthread_t*) malloc(qtd_t*sizeof(pthread_t));
-    int *ts_ids = (int*) malloc(qtd_t*sizeof(int));
+    // ### Declarações de Threads e seus Ids ###
+    pthread_t *ts = (pthread_t*) malloc(qtd_t * sizeof(pthread_t));
+    int *ts_ids = (int*) malloc(qtd_t * sizeof(int));
 
+    // ### Inicialização das matrizes ###
     alloc_array(&A, m, m);
     alloc_array(&B, m, n);
+
     init_arrays(&alpha, A, B, m, n);
 
-    for(i = 0; i < qtd_t; i++) {
+    // ### Processamento principal ###
+    int i;
+
+    for(i = 0; i < qtd_t; i++) {  // Criação dos fluxos
         ts_ids[i] = i;
 
         pthread_create(&ts[i], NULL, &kernel_trmm, &ts_ids[i]);
     }
 
-    for(i = 0; i < qtd_t; i++) {
+    for(i = 0; i < qtd_t; i++) {  // Unir os fluxos
         pthread_join(ts[i], NULL);
     }
 
-    // print_array_aux(B, m, n);
-    // checksum(B, m, n);
+    run_tests(B, m, n, args_flag);  // Testes de resultado
 
+    // ### Finalização ###
     free_array(A, m);
     free_array(B, m);
 

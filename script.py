@@ -1,6 +1,7 @@
 import subprocess
 from prettytable import PrettyTable
 
+# Inicialização
 def trmm_s(config):
     return f'./trmm_s -s {config["size"]}'
 
@@ -42,6 +43,7 @@ speedups = plots['speedup']
 efficiencies = plots['efficiency']
 tables = {metric: {stream_count: PrettyTable(['size'] + [method.__name__ for method in all_methods]) for stream_count in p_streams} for metric in metrics if metric != 'duration_time'}
 
+# Execução e coleta de dados das configurações
 for config in configs:
     cur_method = config['method']
     cur_size = config['size']
@@ -87,6 +89,7 @@ for config in configs:
 
     file.write('\n')
 
+# Cálculo dos pontos dos gráficos
 for plot in plot_types:
     cur_plot = plots[plot]
 
@@ -102,6 +105,7 @@ for plot in plot_types:
 
     file.write('\n')
 
+# Cálculo das tabelas
 for metric in [m for m in metrics if m != 'duration_time']:
     cur_table_metric = tables[metric]
 
@@ -114,3 +118,5 @@ for metric in [m for m in metrics if m != 'duration_time']:
         file.write(f'Tabela de {metric} com {stream_count} fluxos:\n {cur_trable}\n\n')
 
 file.close()
+
+# Teste de resultados: ./trmm_s -s t -p -c ; ./trmm_t -s t -p -c -t 2 ; mpirun -n 2 ./trmm_m -s t -p -c ; mpirun -n 2 ./trmm_mt -s t -t 2 -p -c

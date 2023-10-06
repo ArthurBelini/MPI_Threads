@@ -7,10 +7,10 @@
 
 #include "aux.h"
 
-double alpha;
 double **A;
 double **B;
-double *recv_array;
+double alpha;
+double *recv_array; // Parte de B de cada processo
 int m;
 int n;
 int rank;
@@ -19,13 +19,14 @@ int sendcount;
 int qtd_t;
 
 void *kernel_trmm(void *t_id) {
-    int i, j, k, offset;
+    int i, j, k;
+    int offset;
 
-    for(i = 0; i < m; i++) {  // Linha
-        for(j = rank + *(int*) t_id * size; j < n; j += size * qtd_t) {  // Coluna
-            offset = j/size*m;
+    for(i = 0; i < m; i++) {  // Linhas de B
+        for(j = rank + *((int*) t_id) * size; j < n; j += size * qtd_t) {  // Colunas de B
+            offset = (j / size) * m;  // Posição inicial de elementos dessa iteração em recv_array
 
-            for(k = i+1; k < m; k++) {  // Elementos
+            for(k = i + 1; k < m; k++) {  // Elementos da coluna j
                 recv_array[offset + i] += A[k][i] * recv_array[offset + k];
             }
             
@@ -35,81 +36,85 @@ void *kernel_trmm(void *t_id) {
 }
 
 int main(int argc, char** argv) {
+    // ### Declarações ###
+    int args_flag;
+
+    // ### Inicialização do MPI ###
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    // ### Passagem de argumentos ###
     if(rank == 0) {
-        int ret = args_parse(argc, argv, "hs:t:", &m, &n, &qtd_t);
+        args_flag = args_parse(argc, argv, "hpcs:t:", &m, &n, &qtd_t);
 
-        if(ret <= 1) {
+        if(args_flag <= 1) {  // Saída normal ou com erro
             MPI_Finalize();
-            exit(ret);
+
+            exit(args_flag);
         }
     }
 
-    MPI_Bcast(&m, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&m, 1, MPI_INT, 0, MPI_COMM_WORLD);  // Compartilhamentos de m e n de 0 para todos
     MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&qtd_t, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+    // ### Declarações pós inicialização ###
     int i;
-    int a_size;
-    int b_size;
-    int *sendcounts;
-    int *displs;
-    double *send_array;
 
-    pthread_t *ts = (pthread_t*) malloc(qtd_t*sizeof(pthread_t));
-    int *ts_ids = (int*) malloc(qtd_t*sizeof(int));
+    pthread_t *ts = (pthread_t*) malloc(qtd_t * sizeof(pthread_t));
+    int *ts_ids = (int*) malloc(qtd_t * sizeof(int));
 
-    a_size = m*m;
-    b_size = m*n;
-    send_array = (double*) calloc(b_size, sizeof(double));
-    sendcounts = (int*) calloc(size, sizeof(int));
-    displs = (int*) calloc(size, sizeof(int));
-    for(i = 0; i < n; i++) {
-        sendcounts[i % size]++;
-    }
+    double *send_array = (double*) malloc((m * n) * sizeof(double));  // B transformado em 1D
+    int *sendcounts = (int*) malloc(size * sizeof(int));  // Quantidades de elementos que cada processo receberá
+    int *displs = (int*) malloc(size * sizeof(int));  // Posições iniciais em send_array de cada processo
+
     for(i = 0; i < size; i++) {
-        sendcounts[i] *= m;
+        sendcounts[i] = (n / size) * m;
+        sendcounts[i] += (i < (n % size)) ? m : 0;
 
-        displs[i] = (i > 0) ? displs[i-1] + sendcounts[i-1] : 0;
+        displs[i] = (i > 0) ? displs[i - 1] + sendcounts[i - 1] : 0;
     }
 
-    recv_array = (double*) calloc(sendcounts[rank], sizeof(double));
+    recv_array = (double*) malloc(sendcounts[rank] * sizeof(double));  // Parte de B de cada processo
 
-    alloc_array(&A, m, m);
-    if(rank == 0) {
+    // ### Inicialização das matrizes ###
+    alloc_array(&A, m, m);  // Matriz A comum entre todos processos
+    if(rank == 0) {  // Processo 0 inicia os valores
         alloc_array(&B, m, n);
         init_arrays(&alpha, A, B, m, n);
-        flatten_array(send_array, B, m, n, size, sendcounts, displs);
+        flatten_array(send_array, B, m, n, size, displs);
     }
 
-    MPI_Bcast(&alpha, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    // ### Compartilhamento de valores e partes de B de 0 para todos ###
     for(i = 0; i < m; i++) {
         MPI_Bcast(A[i], m, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     }
+    MPI_Bcast(&alpha, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     MPI_Scatterv(send_array, sendcounts, displs, MPI_DOUBLE, recv_array, sendcounts[rank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    for(i = 0; i < qtd_t; i++) {
+    // ### Processamento principal ###
+    for(i = 0; i < qtd_t; i++) {  // Criação dos fluxos
         ts_ids[i] = i;
 
         pthread_create(&ts[i], NULL, &kernel_trmm, &ts_ids[i]);
     }
 
-    for(i = 0; i < qtd_t; i++) {
+    for(i = 0; i < qtd_t; i++) {  // Unir os fluxos
         pthread_join(ts[i], NULL);
     }
 
+    // ### Processo inverso de reunião dos dados de todos para 0 ###
     MPI_Gatherv(recv_array, sendcounts[rank], MPI_DOUBLE, send_array, sendcounts, displs, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     if(rank == 0) {
         unflatten_array(send_array, B, m, n, size, sendcounts, displs);
-        // print_array_aux(B, m, n);
-        // checksum(B, m, n);
+
+        run_tests(B, m, n, args_flag);  // Testes de resultado
     }
 
+    // ### Finalização ###
     free_array(A, m);
     if(rank == 0) {
         free_array(B, m);
